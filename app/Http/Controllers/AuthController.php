@@ -16,15 +16,23 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
+            'name' => 'required|string|max:150',
             'email' => 'nullable|email|unique:users',
-            'phone' => 'nullable|string|unique:users',
+            'phone' => 'nullable|string|max:30|unique:users',
             'password' => 'required|min:6',
             'role' => 'required|in:rider,driver,admin',
+            'cnic' => 'nullable|string|max:50',
+            'selfie' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $selfieUrl = null;
+        if ($request->hasFile('selfie')) {
+            $path = $request->file('selfie')->store('selfies', 'public');
+            $selfieUrl = asset('storage/' . $path);
         }
 
         $user = User::create([
@@ -33,6 +41,8 @@ class AuthController extends Controller
             'phone' => $request->phone,
             'role' => $request->role,
             'password' => Hash::make($request->password),
+            'cnic' => $request->cnic,
+            'selfie' => $selfieUrl,
         ]);
 
         return response()->json(['message' => 'User registered successfully. Please verify via OTP.', 'user' => $user], 201);
@@ -111,7 +121,14 @@ class AuthController extends Controller
             ->first();
 
         if ($user) {
-            $user->update(['is_verified' => true]);
+            if ($otp->type === 'email') {
+                $user->is_email_verified = true;
+                $user->email_verified_at = now();
+            }
+            if ($otp->type === 'phone') {
+                $user->is_phone_verified = true;
+            }
+            $user->save();
         }
 
         return response()->json(['message' => 'OTP verified', 'user' => $user]);
@@ -123,5 +140,11 @@ class AuthController extends Controller
             'authenticated' => true,
             'user' => $request->user(),
         ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Logged out']);
     }
 }

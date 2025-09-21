@@ -27,6 +27,7 @@ class User extends Authenticatable
         'is_phone_verified',
         'is_profile_verified',
         'profile_pic_url',
+        'selfie',
     ];
 
     /**
