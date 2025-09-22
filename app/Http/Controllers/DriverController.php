@@ -44,11 +44,25 @@ class DriverController extends Controller
         }
         if (!$ride->driver_id) return response()->json(['status' => true, 'driver' => null]);
         $loc = DriverLocation::where('driver_id', $ride->driver_id)->first();
+        // Simple ETA: distance from driver to pickup divided by avg speed (km/h)
+        $etaMinutes = null;
+        if ($loc && $ride->pickup_lat && $ride->pickup_lng) {
+            $earthRadius = 6371; // km
+            $dLat = deg2rad((float)$ride->pickup_lat - (float)$loc->lat);
+            $dLon = deg2rad((float)$ride->pickup_lng - (float)$loc->lng);
+            $a = sin($dLat/2) ** 2 + cos(deg2rad((float)$loc->lat)) * cos(deg2rad((float)$ride->pickup_lat)) * sin($dLon/2) ** 2;
+            $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+            $distanceKm = $earthRadius * $c;
+            $avgSpeedKmh = 20; // heuristic city speed
+            $etaMinutes = (int) round(($distanceKm / max(1e-6, $avgSpeedKmh)) * 60);
+        }
+
         return response()->json(['status' => true, 'driver' => [
             'id' => $ride->driver_id,
             'lat' => $loc?->lat,
             'lng' => $loc?->lng,
             'updated_at' => $loc?->updated_at,
+            'eta_minutes' => $etaMinutes,
         ]]);
     }
 }
