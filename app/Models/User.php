@@ -26,6 +26,7 @@ class User extends Authenticatable
         'is_email_verified',
         'is_phone_verified',
         'is_profile_verified',
+        'is_online',
         'profile_pic_url',
         'selfie',
     ];
@@ -49,6 +50,7 @@ class User extends Authenticatable
         'is_email_verified' => 'boolean',
         'is_phone_verified' => 'boolean',
         'is_profile_verified' => 'boolean',
+        'is_online' => 'boolean',
         'email_verified_at' => 'datetime',
     ];
 }
